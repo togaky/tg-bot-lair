@@ -1,0 +1,1 @@
+работник: python bot.py
