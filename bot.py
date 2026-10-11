@@ -1,43 +1,42 @@
-импорт
-"__основной__"
-импорт ведение журнала
-от айограмма импорт Бот, Диспетчер, типы
-от айограммы.фильтры импорт Команда
+import os
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
 
-BOT_TOKEN = ос.окружающая среда["БОТ_ТОКЕН"]
-ADMIN_ID = инт(ос.окружающая среда["ID_АДМИНИСТРАТОРА"])
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+ADMIN_ID = int(os.environ["ADMIN_ID"])
 
-ведение журнала.basicConfig(уровень=ведение журнала.ИНФОРМАЦИЯ)
-бот = Бот(токен=BOT_TOKEN)
-дп = Диспетчер()
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
-@дп.сообщенье(Команда("старт"))
-асинхронный деф cmd_start(сообщение: типы.Сообщение):
-    ждать сообщение.отвечать("Привет! 👋 Напиши сообщение — оно уйдёт администратору.")
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    await message.answer("Привет! 👋 Напиши сообщение — оно уйдёт администратору.")
 
-@дп.сообщенье()
-асинхронный деф переслать_администратору_(сообщение: типы.Сообщение):
-    пользователь = сообщение.от_пользователя
-    текст = (
+@dp.message()
+async def forward_to_admin(message: types.Message):
+    user = message.from_user
+    text = (
         f"📩 <b>Новое сообщение</b>\n\n"
-        ф"👤 {пользователь.полное_имя}\н"
-        ф"🔗 @{пользователь.имя пользователя если пользователь.имя пользователя еще 'нет'}\н"
-        f"🆔 <код>{пользователь.идентификатор}</код>\n\n"
-        ф"💬 {сообщение.текст или '[не текст]'}"
+        f"👤 {user.full_name}\n"
+        f"🔗 @{user.username if user.username else 'нет'}\n"
+        f"🆔 <code>{user.id}</code>\n\n"
+        f"💬 {message.text or '[не текст]'}"
     )
-    пытаться:
-        ждать бот.отправить_сообщение(ADMIN_ID, tekst)
-        если сообщение.фото или сообщение.документ или сообщение.видео:
-            ждать сообщение.вперед(ADMIN_ID)
-        ждать сообщение.отвечать("✅ Отправлено!")
-    кроме Исключение как е:
-        ведение журнала.ошибка(ф"Ошибка: {e}")
-        ждать сообщение.отвечать("⚠️ Ошибка отправки.")
+    try:
+        await bot.send_message(ADMIN_ID, text)
+        if message.photo or message.document or message.video:
+            await message.forward(ADMIN_ID)
+        await message.answer("✅ Отправлено!")
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+        await message.answer("⚠️ Ошибка отправки.")
 
-асинхронный деф основной():
-    печать("Бот запущен...")
-    ждать дп.старт_опроса(бот)
+async def main():
+    print("Бот запущен...")
+    await dp.start_polling(bot)
 
-если __имя__ == "__основной__":
-    асинсио.бегать(основной())
-  
+if __name__ == "__main__":
+    asyncio.run(main())
